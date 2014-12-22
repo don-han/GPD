@@ -61,10 +61,10 @@ Pomodoro
 - create a task that will be stored in Collection Box for future "Processing"
 - interactive process stage that lets you "process" each task according to PTD rules
 - view any list 
-- make an alarm system that will remind you to review the system at a specific interval (default: once a week)
 - Make Pomodoro counter so that you can finish off Next Actions
 
 # Version II
+- make an alarm system that will remind you to review the system at a specific interval (default: once a week)
 - Implement more side of pomodoro (counting each work)
 
 # range of requirement - What sort of requirement? (setting the upper bound)
@@ -72,7 +72,8 @@ Pomodoro
 ## Technical Specification - How would you implement the requirements (Creator's side)
 # command lines
 gpd --help (-h) : shows help
-gpd --collect (-c) : add a task into a collection basket
+gpd --add (-a) "argument": add a task into a collection basket
+gpd --collect (-c) : add multiple tasks into a collection basket
 gpd --process (-p) : process task from the most recent to the oldest chronologically
 gpd --show (-h) {trash, incubation, reference, projects, support, next, waiting, calendar} : shows argument's list (default: next)
 gpd --review (-r) : goes through each list ? # TODO: Find out what to do in review section
@@ -83,5 +84,57 @@ gpd --do (-d) : runs pomodoro timer with specified next action
 - lists 
 - pomodoro timer
 
+make the file executable
+mv foobar /usr/local/bin
+
 ## Design of Solution - Pseudocode of implementation
-# TODO: Implement with the guideline of technical specifications and the goal of the requirement
+#! /usr/bin/env python
+FUCNTION MAIN - parses two argument (argparse)
+CONDITION: EXECUTE FUNCTION; # first argument {help, collect, processs, show, review, do}
+CONDITION: EXECUTE FUNCTION; # second argument show:{incubation, reference, projects, support, next, waiting, calendar}
+IF two conditions fail -> help
+ELSE EXIT
+
+FUNCTION HELP
+PRINT "Getting Pomodoros Done"
+PRINT Brief introduction of GPD and what it supposes to do
+PRINT General Process of running GPD (collect, process, review, do)
+PRINT all the commands
+
+FUNCTION COLLECT
+NEW Task Object
+ADD TO COLLECT DATABASE
+
+FUCTION PROCESS
+FOR each task:
+    PROMPT task is Actionable?:
+    NO -> LIST.move to appropriate list (trash, reference, incubate); END
+    YES -> PROMPT what is the next action?
+        more than 1 next action -> MOVE to project list
+        1 next action -> PRMOPT takes less than 2 minutes?
+            YES -> Run pomodoro
+            NO -> Move to right list (delegate or defer)
+        
+        
+FUNCTION Organize
+SHOW List
+
+#FUNCTION review
+#Set an alarm 
+
+FUNCTION DO
+make pomodoro instance
+run pomodoro 
+
+OBJECT TASK 
+CONSTRUCTOR DesiredOutcome
+VAR isActionable
+VAR isProject
+LIST NextAction
+
+OBJECT LIST
+CONSTRUCTOR Name
+FUNCTION MOVE (item to move, A list to move to) # an item cannot be in more than one list
+
+OBJECT POMORODO
+CONSTRUCTOR TYPE (LONG, SHORT, RUN)
