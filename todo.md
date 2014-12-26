@@ -75,7 +75,7 @@ gpd --help (-h) : shows help
 gpd --add (-a) "argument": add a task into a collection basket
 gpd --collect (-c) : add multiple tasks into a collection basket
 gpd --process (-p) : process task from the most recent to the oldest chronologically
-gpd --show (-h) {trash, incubation, reference, projects, support, next, waiting, calendar} : shows argument's list (default: next)
+gpd --show (-s) {trash, incubation, reference, projects, support, next, waiting, calendar} : shows argument's list (default: next)
 gpd --review (-r) : goes through each list ? # TODO: Find out what to do in review section
 gpd --do (-d) : runs pomodoro timer with specified next action
 
@@ -138,3 +138,7 @@ FUNCTION MOVE (item to move, A list to move to) # an item cannot be in more than
 
 OBJECT POMORODO
 CONSTRUCTOR TYPE (LONG, SHORT, RUN)
+
+
+UPDATE:
+Command line -> gpd : for the first timer (goes through with specific steps and goes through entire steps)
