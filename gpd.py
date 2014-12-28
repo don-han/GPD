@@ -1,6 +1,7 @@
 #! /usr/bin/env python
-import json
 import argparse
+import sqlite3 as lite
+import os, subprocess
 
 ### List Path ###
 collectionPath = ".collection"
@@ -22,17 +23,79 @@ def main():
     parser = argparse.ArgumentParser(description="Getting Pomodoros Done")
     subparsers = parser.add_subparsers(title="Steps")
     
-    subparsers.add_parser('add',help="add")
-    subparsers.add_parser('collect',help="collect")
-    subparsers.add_parser('process',help="process")
-    subparsers.add_parser('show',help="show").add_argument("lst")
-    subparsers.add_parser('review',help="review")
-    subparsers.add_parser('do',help="do")
+    add_subparser = subparsers.add_parser('add',help="add").set_defaults(func=collect)
+    collect_subparser = subparsers.add_parser('collect',help="collect").set_defaults(func=collect)
+    process_subparsers = subparsers.add_parser('process',help="process").set_defaults(func=process)
+
+    show_subparser = subparsers.add_parser('show',help="show")
+    show_subparser2 = show_subparser.add_subparsers(dest="show_command")
+    show_subparser2.add_parser("incubation").set_defaults(func=show)
+    show_subparser2.add_parser("reference").set_defaults(func=show)
+    show_subparser2.add_parser("projects").set_defaults(func=show)
+    show_subparser2.add_parser("support").set_defaults(func=show)
+    show_subparser2.add_parser("next").set_defaults(func=show)
+    show_subparser2.add_parser("waiting").set_defaults(func=show)
+    show_subparser2.add_parser("calendar").set_defaults(func=show)
+
+    review_subparser = subparsers.add_parser('review',help="review").set_defaults(func=review)
+    do_subparser = subparsers.add_parser('do',help="do").set_defaults(func=do)
 
     args = parser.parse_args()
 
+    db_filename = "test.db"
+    schema = """
+    CREATE TABLE Goal (
+        id      integer primary key autoincrement not null,
+        details text,
+        list    text
+    )
+    """
+    db_is_new = not os.path.exists(db_filename)
+    with lite.connect(db_filename) as con:
+        if db_is_new:
+            print("Creating schema")
+            con.executescript(schema)
+        args.func(con)
     
-#def collect(goal):
+def collect(con):
+    goal = input("What is the goal? ")
+    con.execute("""
+    INSERT INTO Goal(details, list) VALUES(?, 'collection')
+    """, (goal,))
+
+def process(con):
+    cur = con.execute('SELECT * FROM Goal ORDER BY id DESC')
+    for id, todo, list in cur.fetchall():
+        if input('Is "{0}" actionable? (y,n)'.format(todo)) == 'n':
+            choice = input("Is it trash, reference, or incubate?")
+            print(todo)
+            con.execute("""
+            UPDATE Goal
+            SET list = ?
+            WHERE list = 'collection' AND id = ?
+            """, (choice, id))
+        else:
+            ### TESTED UNTIL HERE
+            nextAction = input("What is the next action?")
+            if input("Do you have more next action?") == 'n':
+                con.execute("""
+                UPDATE Goal
+                SET list = 'next action'
+                WHERE list = 'collection' AND id = ?
+                """, (id,))
+            #else: 
+                # The Project
+
+
+            # Substitue with Tkinter? Knowpapa text-editor
+            # subprocess.call(["xdg-open", filename])
+            
+
+
+def show(lst):
+    print("The list is " + lst)
+
+
 #    # TODO: Best way to store data?
 #    try:
 #        data = json.loads(open(collectionPath, 'r').read())
@@ -42,13 +105,12 @@ def main():
 #        f.close()
 #
 #
-#    task = Task(goal)
+#    goal = Goal(goal)
 #    collect.add(goal)
 #
 #
-#def process():
-#    for task in collectionBasket:
-#        isActionable = input("Is " + task.name +" actionable? (y/n)") == 'y':True?False
+#    for goal in collectionBasket:
+#        isActionable = input("Is " + goal.name +" actionable? (y/n)") == 'y':True?False
 #        if !isActionable:
 #            choose (trash, refernce, incubate)
 #        nextActionList = NextActionList()
@@ -59,22 +121,16 @@ def main():
 #        if input("Can the next action be completed in two minutes? y/n") == 'y':
 #            #initiate pomodoro
 #        else:
+def organize():
+    pass
 #
-#                
-#            
-#
-#
-#            
-#
-#
-#
-#
-#def organize():
-#
-#def do():
+def review():
+    pass
+def do():
+    pass
 #    
 #    
-#class Task:
+#class Goal:
 #    def __init__(self, goal):
 #        self.goal = goal
 #        
@@ -82,7 +138,7 @@ def main():
 #    isProject = False
 #        
 #class List:
-#    def move(self, task, to_list):
+#    def move(self, goal, to_list):
 #class Pomodroo:
 #    def __init__(self, time)
 #
