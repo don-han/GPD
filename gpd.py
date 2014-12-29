@@ -4,20 +4,6 @@ import sqlite3 as lite
 import os, subprocess
 
 ### List Path ###
-collectionPath = ".collection"
-
-
-"""
-nextActionPath = ".nextAction"
-projectPath = ".project"
-projectSupportPath = ".projectSupport"
-referencePath = ".reference"
-calendarPath = ".calendar"
-incubationPath = ".incubation"
-waitingPath = ".waiting"
-trashPath = ".trash"
-"""
-
 
 def main():
     parser = argparse.ArgumentParser(description="Getting Pomodoros Done")
@@ -26,7 +12,7 @@ def main():
     add_subparser = subparsers.add_parser('add',help="add").set_defaults(func=collect)
     collect_subparser = subparsers.add_parser('collect',help="collect").set_defaults(func=collect)
     process_subparsers = subparsers.add_parser('process',help="process").set_defaults(func=process)
-
+    """
     show_subparser = subparsers.add_parser('show',help="show")
     show_subparser2 = show_subparser.add_subparsers(dest="show_command")
     show_subparser2.add_parser("incubation").set_defaults(func=show)
@@ -39,109 +25,83 @@ def main():
 
     review_subparser = subparsers.add_parser('review',help="review").set_defaults(func=review)
     do_subparser = subparsers.add_parser('do',help="do").set_defaults(func=do)
-
+    """
     args = parser.parse_args()
 
     db_filename = "test.db"
-    schema = """
-    CREATE TABLE Goal (
-        id      integer primary key autoincrement not null,
+    schema_task = """
+    CREATE TABLE Task (
+        id      integer primary key autoincrement,
         details text,
-        list    text
+        bucket  text
     )
     """
-    db_is_new = not os.path.exists(db_filename)
+    schema_next="""
+    CREATE TABLE Next(
+        id integer,
+        details text,
+        project text
+    )
+    """ 
+    db_is_new = not os.path.exists(db_filename) 
     with lite.connect(db_filename) as con:
         if db_is_new:
             print("Creating schema")
-            con.executescript(schema)
+            con.executescript(schema_task)
+            con.executescript(schema_next)
         args.func(con)
     
 def collect(con):
-    goal = input("What is the goal? ")
+    task = input("What is the goal? ")
     con.execute("""
-    INSERT INTO Goal(details, list) VALUES(?, 'collection')
-    """, (goal,))
+    INSERT INTO Task(details, bucket) VALUES(?, 'collection')
+    """, (task,))
 
 def process(con):
-    cur = con.execute('SELECT * FROM Goal ORDER BY id DESC')
-    for id, todo, list in cur.fetchall():
-        if input('Is "{0}" actionable? (y,n)'.format(todo)) == 'n':
+    cur = con.execute("SELECT * FROM Task WHERE bucket = 'collection' ORDER BY id DESC")
+    for pid, task, bucket in cur.fetchall():
+        print('### PROCESSING: "{0}" ###'.format(task))
+        if input('Is "{0}" actionable? (y,n)'.format(task)) == 'n':
             choice = input("Is it trash, reference, or incubate?")
-            print(todo)
+            # TODO: Make into integer only between 1 - 3 
+            # (rf. Update multiple rows with different values and a single SQL query)
             con.execute("""
-            UPDATE Goal
-            SET list = ?
-            WHERE list = 'collection' AND id = ?
-            """, (choice, id))
+            UPDATE Task
+            SET bucket = ?
+            WHERE bucket = 'collection' AND id = ?
+            """, (choice, pid,))
         else:
-            ### TESTED UNTIL HERE
-            nextAction = input("What is the next action?")
-            if input("Do you have more next action?") == 'n':
+            if input("Is {0} the only next action?".format(task)) == 'y':
+                if input("Can you finish it within 2 minutes? If so, do it now and enter 'y'. If not, press 'n'" =='n':
+                    # make Task into next action
+                    con.execute("""
+                        INSERT INTO Next(details) VALUES(?)
+                    """, (task,))
+
+                # delete Task
                 con.execute("""
-                UPDATE Goal
-                SET list = 'next action'
-                WHERE list = 'collection' AND id = ?
-                """, (id,))
-            #else: 
-                # The Project
+                    DELETE FROM Task
+                    WHERE id = ?
+                """, (pid,))
+            else:
+                tempFile = ".temp"
+                with open(tempFile, 'w') as f:
+                    ## TODO: find an alternative in case $EDITOR is not defined
+                    # Substitue with Tkinter? Knowpapa text-editor
+                    # cat > /dev/null (subprocess.Popen(['cat'], f)
+                    subprocess.call(["vim", tempFile])
+                    with open(tempFile, 'r') as f:
+                        na_id = 1
+                        for line in f:
+                            con.execute("""
+                                INSERT INTO NEXT(id, details, project) VALUES(?,?,?)
+                            """, (na_id, line, task,))
+                            na_id += 1
+                        os.remove(tempFile)
+                        con.execute("""
+                        DELETE FROM Task
+                        WHERE id = ?
+                        """, (pid,))
 
-
-            # Substitue with Tkinter? Knowpapa text-editor
-            # subprocess.call(["xdg-open", filename])
-            
-
-
-def show(lst):
-    print("The list is " + lst)
-
-
-#    # TODO: Best way to store data?
-#    try:
-#        data = json.loads(open(collectionPath, 'r').read())
-#    except FileNotFoundError as fe:
-#        json.dump({'goal': goal},open(collectionPath, "w"))
-#    finally:
-#        f.close()
-#
-#
-#    goal = Goal(goal)
-#    collect.add(goal)
-#
-#
-#    for goal in collectionBasket:
-#        isActionable = input("Is " + goal.name +" actionable? (y/n)") == 'y':True?False
-#        if !isActionable:
-#            choose (trash, refernce, incubate)
-#        nextActionList = NextActionList()
-#        # Do you write all the next actions at process stage or do you just pass it onto project list
-#        while True: 
-#            print ("Write all necessary next actions and when you are finished, write "." to finish")
-#            nextActionList.add(input("What is the immediate next action?"))
-#        if input("Can the next action be completed in two minutes? y/n") == 'y':
-#            #initiate pomodoro
-#        else:
-def organize():
-    pass
-#
-def review():
-    pass
-def do():
-    pass
-#    
-#    
-#class Goal:
-#    def __init__(self, goal):
-#        self.goal = goal
-#        
-#    isActionable = False
-#    isProject = False
-#        
-#class List:
-#    def move(self, goal, to_list):
-#class Pomodroo:
-#    def __init__(self, time)
-#
-#
 if __name__ == "__main__":
     main()
