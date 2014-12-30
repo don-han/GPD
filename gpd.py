@@ -6,7 +6,7 @@ import os, subprocess
 ### List Path ###
 
 def main():
-    parser = argparse.ArgumentParser(description="Getting Pomodoros Done")
+    parser = argparse.ArgumentParser(prog="Getting Pomodoros Done")
     subparsers = parser.add_subparsers(title="Steps")
     
     add_subparser = subparsers.add_parser('add',help="add").set_defaults(func=collect)
@@ -30,7 +30,7 @@ def main():
 
     db_filename = "test.db"
     schema_task = """
-    CREATE TABLE Task (
+    CREATE TABLE Collection (
         id      integer primary key autoincrement,
         details text,
         bucket  text
@@ -46,7 +46,7 @@ def main():
     db_is_new = not os.path.exists(db_filename) 
     with lite.connect(db_filename) as con:
         if db_is_new:
-            print("Creating schema")
+            print("[*] Creating schema")
             con.executescript(schema_task)
             con.executescript(schema_next)
         args.func(con)
@@ -54,33 +54,33 @@ def main():
 def collect(con):
     task = input("What is the goal? ")
     con.execute("""
-    INSERT INTO Task(details, bucket) VALUES(?, 'collection')
+    INSERT INTO Collection(details, bucket) VALUES(?, 'collection')
     """, (task,))
 
 def process(con):
-    cur = con.execute("SELECT * FROM Task WHERE bucket = 'collection' ORDER BY id DESC")
+    cur = con.execute("SELECT * FROM Collection WHERE bucket = 'collection' ORDER BY id DESC")
     for pid, task, bucket in cur.fetchall():
-        print('### PROCESSING: "{0}" ###'.format(task))
+        print('[*] PROCESSING: "{0}"'.format(task))
         if input('Is "{0}" actionable? (y,n)'.format(task)) == 'n':
             choice = input("Is it trash, reference, or incubate?")
             # TODO: Make into integer only between 1 - 3 
             # (rf. Update multiple rows with different values and a single SQL query)
             con.execute("""
-            UPDATE Task
+            UPDATE Collection
             SET bucket = ?
             WHERE bucket = 'collection' AND id = ?
             """, (choice, pid,))
         else:
             if input("Is {0} the only next action?".format(task)) == 'y':
-                if input("Can you finish it within 2 minutes? If so, do it now and enter 'y'. If not, press 'n'" =='n':
-                    # make Task into next action
+                if input("Can you finish it within 2 minutes? If so, do it now and enter 'y'. If not, press 'n'") =='n':
+                    # make Collection into next action
                     con.execute("""
                         INSERT INTO Next(details) VALUES(?)
                     """, (task,))
 
-                # delete Task
+                # delete Collection
                 con.execute("""
-                    DELETE FROM Task
+                    DELETE FROM Collection
                     WHERE id = ?
                 """, (pid,))
             else:
@@ -97,11 +97,11 @@ def process(con):
                                 INSERT INTO NEXT(id, details, project) VALUES(?,?,?)
                             """, (na_id, line, task,))
                             na_id += 1
-                        os.remove(tempFile)
-                        con.execute("""
-                        DELETE FROM Task
-                        WHERE id = ?
-                        """, (pid,))
+                    os.remove(tempFile)
+                    con.execute("""
+                    DELETE FROM Collection
+                    WHERE id = ?
+                    """, (pid,))
 
 if __name__ == "__main__":
     main()
