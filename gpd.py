@@ -12,6 +12,7 @@ def main():
     add_subparser = subparsers.add_parser('add',help="add").set_defaults(func=collect)
     collect_subparser = subparsers.add_parser('collect',help="collect").set_defaults(func=collect)
     process_subparsers = subparsers.add_parser('process',help="process").set_defaults(func=process)
+    show_subparsers = subparsers.add_parser('show',help="show").set_defaults(func=show)
     """
     show_subparser = subparsers.add_parser('show',help="show")
     show_subparser2 = show_subparser.add_subparsers(dest="show_command")
@@ -28,7 +29,7 @@ def main():
     """
     args = parser.parse_args()
 
-    db_filename = "test.db"
+    db_filename = ".gpd.db"
     schema_task = """
     CREATE TABLE Collection (
         id      integer primary key autoincrement,
@@ -40,9 +41,15 @@ def main():
     CREATE TABLE Next(
         id integer,
         details text,
-        project text
+        project text references Project(name)
     )
     """ 
+
+    schema_proj="""
+    CREATE TABLE Project(
+        name text
+    )
+    """
     db_is_new = not os.path.exists(db_filename) 
     with lite.connect(db_filename) as con:
         if db_is_new:
@@ -92,16 +99,34 @@ def process(con):
                     subprocess.call(["vim", tempFile])
                     with open(tempFile, 'r') as f:
                         na_id = 1
+                        project = input("What is the name of the project?")
                         for line in f:
                             con.execute("""
                                 INSERT INTO NEXT(id, details, project) VALUES(?,?,?)
-                            """, (na_id, line, task,))
+                            """, (na_id, line, project,))
                             na_id += 1
                     os.remove(tempFile)
                     con.execute("""
                     DELETE FROM Collection
                     WHERE id = ?
                     """, (pid,))
+def show(con):
+    listToShow = input("Which list do you wish to see? (1. Collection, 2. Next Actions, 3. Projects)")
+    cur = con.cursor()
+    if listToShow == "1":
+        cur.execute("""
+            SELECT * FROM Collection
+        """)
+    elif listToShow == "2":
+        cur.execute("""
+            SELECT * FROM Next
+        """)
+    elif listToShow == "3":
+        cur.execute("""
+            SELECT Project FROM Collection
+        """)
+    print(cur.fetchall())
+    
 
 if __name__ == "__main__":
     main()
