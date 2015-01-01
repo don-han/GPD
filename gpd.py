@@ -78,6 +78,16 @@ def show(con):
         print(col[0])
     for row in cur.fetchall():
         print(row)
+
+def do(con):
+    # TODO: if you finish one next action, then reduce the id by one of entire project
+    cur = con.cursor()
+    cur.execute("SELECT * FROM NextAction")
+    for line in cur.fetchall():
+        print(line)
+        #print("{0} {1} {2}".format(line))
+
+    #todo = input("Which ones do you wish to do in next 25 minutes?")
     
 
 if __name__ == "__main__":
@@ -88,6 +98,7 @@ if __name__ == "__main__":
     collect_subparser = subparsers.add_parser('collect',help="collect").set_defaults(func=collect)
     process_subparsers = subparsers.add_parser('process',help="process").set_defaults(func=process)
     show_subparsers = subparsers.add_parser('show',help="show").set_defaults(func=show)
+    do_subparser = subparsers.add_parser('do',help="do").set_defaults(func=do)
     """
     show_subparser = subparsers.add_parser('show',help="show")
     show_subparser2 = show_subparser.add_subparsers(dest="show_command")
@@ -100,10 +111,10 @@ if __name__ == "__main__":
     show_subparser2.add_parser("calendar").set_defaults(func=show)
 
     review_subparser = subparsers.add_parser('review',help="review").set_defaults(func=review)
-    do_subparser = subparsers.add_parser('do',help="do").set_defaults(func=do)
     """
     args = parser.parse_args()
-
+    
+    # TODO: Get rid of bucket
     schema_task = """
     CREATE TABLE Collection (
         id      integer primary key autoincrement,
@@ -111,9 +122,11 @@ if __name__ == "__main__":
         bucket  text
     )
     """
+
     schema_next="""
     CREATE TABLE NextAction(
         id integer,
+        step_id integer,
         details text,
         project text references Project(name)
     )
