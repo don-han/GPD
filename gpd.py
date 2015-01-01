@@ -3,9 +3,84 @@ import argparse
 import sqlite3 as lite
 import os, subprocess
 
-### List Path ###
+def collect(con):
+    task = input("What is the goal? ")
+    con.execute("""
+    INSERT INTO Collection(details) VALUES(?)
+    """, (task,))
 
-def main():
+def process(con):
+    cur = con.execute("SELECT * FROM Collection ORDER BY id DESC")
+    for pid, task, bucket in cur.fetchall():
+        print('[*] PROCESSING: "{0}"'.format(task))
+        if input('Is "{0}" actionable? (y,n)'.format(task)) in ('n'):
+            choice = input("Is it trash, reference, or incubate?")
+            # TODO: Make into integer only between 1 - 3 
+            # (rf. Update multiple rows with different values and a single SQL query)
+            con.execute("""
+            UPDATE Collection
+            SET bucket = ?
+            WHERE id = ?
+            """, (choice, pid,))
+        else:
+            if input("Is {0} the only next action?".format(task)) == 'y':
+                if input("Can you finish it within 2 minutes? If so, do it now and enter 'y'. If not, press 'n'") =='n':
+                    # make Collection into next action
+                    con.execute("""
+                        INSERT INTO NextAction(details) VALUES(?)
+                    """, (task,))
+
+                # delete Collection
+                con.execute("""
+                    DELETE FROM Collection
+                    WHERE id = ?
+                """, (pid,))
+            else:
+                tempFile = ".temp"
+                with open(tempFile, 'w') as f:
+                    ## TODO: find an alternative in case $EDITOR is not defined
+                    # Substitue with Tkinter? Knowpapa text-editor
+                    # cat > /dev/null (subprocess.Popen(['cat'], f)
+                    subprocess.call(["vim", tempFile])
+                    with open(tempFile, 'r') as f:
+                        na_id = 1
+                        project = input("What is the name of the project?")
+                        for line in f:
+                            con.execute("""
+                                INSERT INTO NextAction(id, details, project) VALUES(?,?,?)
+                            """, (na_id, line, project))
+                            na_id += 1
+                    os.remove(tempFile)
+                    con.execute("""
+                    DELETE FROM Collection
+                    WHERE id = ?
+                    """, (pid,))
+def show(con):
+    bucketDict = {"1": "Collection", "2": "NextAction", "3": "Project"}
+    bucket = bucketDict[input("Which bucket do you wish to see? (1. {0}, 2. {1} 3. {2})".format(bucketDict["1"],bucketDict["2"],bucketDict["3"]))]
+
+    cur = con.cursor()
+    cur.execute("SELECT * FROM {0}".format(bucket))
+    #if listToShow == "1":
+    #    cur.execute("""
+    #        SELECT * FROM Collection
+    #    """)
+    #elif listToShow == "2":
+    #    cur.execute("""
+    #        SELECT * FROM NextAction
+    #    """)
+    #elif listToShow == "3":
+    #    cur.execute("""
+    #        SELECT * FROM Project
+    #    """)
+    # TODO: Find a way to effectively show the data of schema
+    for col in cur.description:
+        print(col[0])
+    for row in cur.fetchall():
+        print(row)
+    
+
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="Getting Pomodoros Done")
     subparsers = parser.add_subparsers(title="Steps")
     
@@ -29,7 +104,6 @@ def main():
     """
     args = parser.parse_args()
 
-    db_filename = ".gpd.db"
     schema_task = """
     CREATE TABLE Collection (
         id      integer primary key autoincrement,
@@ -38,7 +112,7 @@ def main():
     )
     """
     schema_next="""
-    CREATE TABLE Next(
+    CREATE TABLE NextAction(
         id integer,
         details text,
         project text references Project(name)
@@ -50,83 +124,13 @@ def main():
         name text
     )
     """
+    db_filename = "test.db"
     db_is_new = not os.path.exists(db_filename) 
+            #print("DB is new? {0}".format(db_is_new))
     with lite.connect(db_filename) as con:
         if db_is_new:
             print("[*] Creating schema")
             con.executescript(schema_task)
             con.executescript(schema_next)
+            #con.executescript(schema_proj)
         args.func(con)
-    
-def collect(con):
-    task = input("What is the goal? ")
-    con.execute("""
-    INSERT INTO Collection(details, bucket) VALUES(?, 'collection')
-    """, (task,))
-
-def process(con):
-    cur = con.execute("SELECT * FROM Collection WHERE bucket = 'collection' ORDER BY id DESC")
-    for pid, task, bucket in cur.fetchall():
-        print('[*] PROCESSING: "{0}"'.format(task))
-        if input('Is "{0}" actionable? (y,n)'.format(task)) == 'n':
-            choice = input("Is it trash, reference, or incubate?")
-            # TODO: Make into integer only between 1 - 3 
-            # (rf. Update multiple rows with different values and a single SQL query)
-            con.execute("""
-            UPDATE Collection
-            SET bucket = ?
-            WHERE bucket = 'collection' AND id = ?
-            """, (choice, pid,))
-        else:
-            if input("Is {0} the only next action?".format(task)) == 'y':
-                if input("Can you finish it within 2 minutes? If so, do it now and enter 'y'. If not, press 'n'") =='n':
-                    # make Collection into next action
-                    con.execute("""
-                        INSERT INTO Next(details) VALUES(?)
-                    """, (task,))
-
-                # delete Collection
-                con.execute("""
-                    DELETE FROM Collection
-                    WHERE id = ?
-                """, (pid,))
-            else:
-                tempFile = ".temp"
-                with open(tempFile, 'w') as f:
-                    ## TODO: find an alternative in case $EDITOR is not defined
-                    # Substitue with Tkinter? Knowpapa text-editor
-                    # cat > /dev/null (subprocess.Popen(['cat'], f)
-                    subprocess.call(["vim", tempFile])
-                    with open(tempFile, 'r') as f:
-                        na_id = 1
-                        project = input("What is the name of the project?")
-                        for line in f:
-                            con.execute("""
-                                INSERT INTO NEXT(id, details, project) VALUES(?,?,?)
-                            """, (na_id, line, project,))
-                            na_id += 1
-                    os.remove(tempFile)
-                    con.execute("""
-                    DELETE FROM Collection
-                    WHERE id = ?
-                    """, (pid,))
-def show(con):
-    listToShow = input("Which list do you wish to see? (1. Collection, 2. Next Actions, 3. Projects)")
-    cur = con.cursor()
-    if listToShow == "1":
-        cur.execute("""
-            SELECT * FROM Collection
-        """)
-    elif listToShow == "2":
-        cur.execute("""
-            SELECT * FROM Next
-        """)
-    elif listToShow == "3":
-        cur.execute("""
-            SELECT Project FROM Collection
-        """)
-    print(cur.fetchall())
-    
-
-if __name__ == "__main__":
-    main()
