@@ -15,6 +15,10 @@ def keyhandler(key):
 
     # do
     if key in ('d', 'D'):
+        bt = urwid.BigText("")
+        bt = urwid.AttrWrap(bt, 'bigtext')
+        
+        loop.widget = bt
         # make big text widget
         # loop.widget=
         pass
