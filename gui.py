@@ -1,5 +1,8 @@
 import urwid
 
+palette = [ ('titlebar', 'black', 'white'),
+            ]
+
 def keyhandler(key):
     if key in ('q', 'Q'):
         raise urwid.ExitMainLoop()
@@ -34,8 +37,9 @@ if __name__ == "__main__":
     body_txt = urwid.Text(u"Enter 'a' to add a task", align='center')
     body = urwid.Filler(body_txt)
     footer= urwid.Edit(u"What task would you like to add?")
-    # header = prompt
+    header_txt = urwid.Text(u"list goes here")
+    header = urwid.AttrMap(header_txt, 'titlebar')
     #footer = urwid.Edit(u"What task would you like to add? ")
-    fr = urwid.Frame(body,footer=footer, focus_part='footer')
-    loop = urwid.MainLoop(fr,unhandled_input=keyhandler)
+    fr = urwid.Frame(header=header, body=body,footer=footer, focus_part='footer')
+    loop = urwid.MainLoop(fr, palette, unhandled_input=keyhandler)
     loop.run()
