@@ -1,16 +1,17 @@
 import urwid
 # Set up color scheme
-palette = [ ('titlebar', 'black', 'white') ]
+palette = [ ('titlebar', 'black', 'white'),
+            ('bigtext', 'white', 'black')
+            ]
 def keyhandler(key):
     if key in ('q', 'Q'):
         raise urwid.ExitMainLoop()
     # Collect
     if key in ('a', 'A'):
         edit = urwid.Edit(u"What task would you like to add? ")
-        edit = urwid.Filler(edit)
-        q = QuestionBox(edit)
-        layout.footer = q
-        layout.focus_position = 'footer'
+        edit = QuestionBox(edit)
+        layout.footer = edit
+        #layout.focus_position = 'footer'
     # Process
     if key in ('p', 'P'):
         # make widget about processing (menu)
@@ -20,7 +21,7 @@ def keyhandler(key):
     # do
     if key in ('d', 'D'):
         bt = urwid.BigText("")
-        bt = urwid.AttrWrap(bt, 'bigtext')
+        bt = urwid.AttrMap(bt, 'bigtext')
         
         loop.widget = bt
         # make big text widget
@@ -32,7 +33,8 @@ def keyhandler(key):
 class QuestionBox(urwid.Filler):
     def keypress(self, size, key):
         if key != 'enter':
-            return super(QuestionBox, self).keypress(size, key)
+            return super(Edit, self).keypress(size, key)
+        #edit = urwid.Text(u'The Task "{0}" is added to the Collection Bucket'.format(edit.edit_text))
         #layout.footer = urwid.Text(u'The Task "{0}" is added to the Collection Bucket'.format(footer.edit_text))
         #self.original_widget=urwid.Text(u'The task "{0}" is added to the Collection Bucket'.format(footer.edit_text))
 
