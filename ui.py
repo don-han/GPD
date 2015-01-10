@@ -9,16 +9,9 @@ def keyhandler(key):
         layout.focus_position = 'footer'
     # Process
     if key in ('p', 'P'):
-        top = CascadingBoxes(menu_top)
-        layout.body = top
+        # for task in tasks:
+        layout.body = CascadingBoxes()
         layout.focus_position = 'body'
-        ## lst = get_list
-        #tasks = []
-        #for task in tasks:
-            
-        # make widget about processing (menu)
-        # loop.widget = 
-        pass
 
     # do
     if key in ('d', 'D'):
@@ -54,55 +47,34 @@ palette = [ ('titlebar', 'black', 'white'),
             ('reversed', 'standout', '')]
 
 
-# Create menu for Process Step
-menu_top = menu(u'Processing...', [
-    sub_menu(u'Not Actionable', [
-        menu_button(u'Trash', item_chosen),
-        menu_button(u'Incubate', item_chosen),
-        menu_button(u'Reference', item_chosen),
-    ]),
-    sub_menu(u'Actionable', [
-        sub_menu(u'Next Action', [
-            menu_button(u'Less than 2 minutes', item_chosen),
-            sub_menu(u'Longer than 2 minutes', [
-                menu_button(u'Delegate it: Waiting for', item_chosen),
-                menu_button(u'Defer it: NextActions ', item_chosen),
-                menu_button(u'Defer it: Calendar', item_chosen),
-                ]),
-            ]),
-    menu_button(u'Project', item_chosen),
-    ]),
-])
 
-# Creating Cascading Menu
-def menu_button(caption, callback):
-    button = urwid.Button(caption)
-    urwid.connect_signal(button, 'click', callback)
-    return urwid.AttrMap(button, None, focus_map='reversed')
-
-def sub_menu(caption, choices):
-    contents = menu(caption, choices)
-    def open_menu(button):
-        return self.open_box(contents)
-    return menu_button([caption, u'...'], open_menu)
-
-def menu(title, choices):
-    body = [urwid.Text(title), urwid.Divider()]
-    body.extend(choices)
-    return urwid.ListBox(urwid.SimpleFocusListWalker(body))
-
-def item_chosen(button):
-    response = urwid.Text([u'You chose ', button.label, u'\n'])
-    done = menu_button(u'Ok', exit_program)
-    self.open_box(urwid.Filler(urwid.Pile([response, done])))
 
 class CascadingBoxes(urwid.WidgetPlaceholder):
     max_box_levels = 5
 
-    def __init__(self, box):
+    def __init__(self):
+        # Create menu for Process Step
+        menu_top = self.menu(u'Processing...', [
+            self.sub_menu(u'Not Actionable', [
+                self.menu_button(u'Trash', self.item_chosen),
+                self.menu_button(u'Incubate', self.item_chosen),
+                self.menu_button(u'Reference', self.item_chosen),
+            ]),
+            self.sub_menu(u'Actionable', [
+                self.sub_menu(u'Next Action', [
+                    self.menu_button(u'Less than 2 minutes', self.item_chosen),
+                    self.sub_menu(u'Longer than 2 minutes', [
+                        self.menu_button(u'Delegate it: Waiting for', self.item_chosen),
+                        self.menu_button(u'Defer it: NextActions ', self.item_chosen),
+                        self.menu_button(u'Defer it: Calendar', self.item_chosen),
+                        ]),
+                    ]),
+            self.menu_button(u'Project', self.item_chosen),
+            ]),
+        ])
         super(CascadingBoxes, self).__init__(urwid.SolidFill(u'/'))
         self.box_level = 0
-        self.open_box(box)
+        self.open_box(menu_top)
 
     def open_box(self, box):
         self.original_widget = urwid.Overlay(urwid.LineBox(box),
@@ -122,6 +94,28 @@ class CascadingBoxes(urwid.WidgetPlaceholder):
             self.box_level -= 1
         else:
             return super(CascadingBoxes, self).keypress(size, key)
+
+    # Creating Cascading Menu
+    def menu_button(self, caption, callback):
+        button = urwid.Button(caption)
+        urwid.connect_signal(button, 'click', callback)
+        return urwid.AttrMap(button, None, focus_map='reversed')
+
+    def sub_menu(self, caption, choices):
+        contents = self.menu(caption, choices)
+        def open_menu(button):
+            return self.open_box(contents)
+        return self.menu_button([caption, u'...'], open_menu)
+
+    def menu(self, title, choices):
+        body = [urwid.Text(title), urwid.Divider()]
+        body.extend(choices)
+        return urwid.ListBox(urwid.SimpleFocusListWalker(body))
+
+    def item_chosen(self, button):
+        response = urwid.Text([u'You chose ', button.label, u'\n'])
+        done = self.menu_button(u'Ok', keyhandler)
+        self.open_box(urwid.Filler(urwid.Pile([response, done])))
 
 # Create the beginning screen
 header_txt = urwid.Text(u"list stat goes here")
