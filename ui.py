@@ -1,5 +1,6 @@
 import urwid
 
+
 def keyhandler(key):
     if key in ('q', 'Q'):
         raise urwid.ExitMainLoop()
@@ -15,15 +16,12 @@ def keyhandler(key):
 
     # do
     if key in ('d', 'D'):
-        """
-        bt = urwid.BigText("")
-        bt = urwid.AttrMap(bt, 'bigtext')
-        
-        loop.widget = bt
-        # make big text widget
-        # loop.widget=
-        """
-        pass
+        bt = urwid.BigText('1 : 0 0', urwid.font.HalfBlock7x7Font())
+        bt = urwid.Padding(bt, 'center', width='clip')
+        #bt = urwid.AttrWrap(bt, 'bigtext')
+        bt = urwid.Filler(bt, 'middle')
+        layout.body = bt
+        layout.focus_position = 'body'
 
 
 
@@ -45,9 +43,6 @@ class AddPrompt(urwid.Edit):
 palette = [ ('titlebar', 'black', 'white'),
             ('bigtext', 'white', 'black'),
             ('reversed', 'standout', '')]
-
-
-
 
 class CascadingBoxes(urwid.WidgetPlaceholder):
     max_box_levels = 5
