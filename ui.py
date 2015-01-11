@@ -19,7 +19,7 @@ def keyhandler(key):
         bt = urwid.BigText('1 : 0 0', urwid.font.HalfBlock7x7Font())
         bt = urwid.Padding(bt, 'center', width='clip')
         #bt = urwid.AttrWrap(bt, 'bigtext')
-        bt = urwid.Filler(bt, 'middle')
+        bt = urwid.Filler(bt)
         layout.body = bt
         layout.focus_position = 'body'
 
