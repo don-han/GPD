@@ -2,7 +2,7 @@ from datetime import datetime
 from time import sleep
 class Timer:
     def run(self, interval, message=""):
-        remaining = interval//2#interval * 60    # minute -> seconds
+        remaining = interval * 60    # minute -> seconds
         startTime = datetime.now()
         print("Started at {0:02}:{1:02}'{2:02}".format(startTime.hour, startTime.minute, startTime.second))
         for i in range(remaining):
