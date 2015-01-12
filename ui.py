@@ -1,6 +1,5 @@
 import urwid
 
-
 def keyhandler(key):
     if key in ('q', 'Q'):
         raise urwid.ExitMainLoop()
@@ -39,10 +38,6 @@ class AddPrompt(urwid.Edit):
             return urwid.Edit.keypress(self, size, key)
 
 
-# Set up color scheme
-palette = [ ('titlebar', 'black', 'white'),
-            ('bigtext', 'white', 'black'),
-            ('reversed', 'standout', '')]
 
 class CascadingBoxes(urwid.WidgetPlaceholder):
     max_box_levels = 5
@@ -112,24 +107,27 @@ class CascadingBoxes(urwid.WidgetPlaceholder):
         done = self.menu_button(u'Ok', keyhandler)
         self.open_box(urwid.Filler(urwid.Pile([response, done])))
 
-# Create the beginning screen
-header_txt = urwid.Text(u"list stat goes here")
-#header = urwid.AttrMap(header_txt, 'titlebar')
-
-body_txt = urwid.Text(u"""
-Welcome to GPD!
-Enter 'a' to add a new task, 'q' to quit, 'h' for more help""", align='center')
-body = urwid.Filler(body_txt)
-
-# place holder for footer
-footer = urwid.Text(u"")
-
-layout = urwid.Frame(header=header_txt, body=body, footer=footer)
-
-loop = urwid.MainLoop(layout,palette, unhandled_input=keyhandler)
-loop.run()
 
 
 if __name__ == "__main__":
-    GUI()
+    # Set up color scheme
+    palette = [ ('titlebar', 'black', 'white'),
+                ('bigtext', 'white', 'black'),
+                ('reversed', 'standout', '')]
 
+    # Create the beginning screen
+    header_txt = urwid.Text(u"list stat goes here")
+    #header = urwid.AttrMap(header_txt, 'titlebar')
+
+    body_txt = urwid.Text(u"""
+    Welcome to GPD!
+    Enter 'a' to add a new task, 'q' to quit, 'h' for more help""", align='center')
+    body = urwid.Filler(body_txt)
+
+    # place holder for footer
+    footer = urwid.Text(u"")
+
+    layout = urwid.Frame(header=header_txt, body=body, footer=footer)
+
+    loop = urwid.MainLoop(layout,palette, unhandled_input=keyhandler)
+    loop.run()

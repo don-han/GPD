@@ -3,91 +3,92 @@ import argparse
 import sqlite3 as lite
 import os, subprocess
 
-def collect(con):
-    task = input("What is the goal? ")
-    con.execute("""
-    INSERT INTO Collection(details) VALUES(?)
-    """, (task,))
+class GPD:
+    def collect(con):
+        task = input("What is the goal? ")
+        con.execute("""
+        INSERT INTO Collection(details) VALUES(?)
+        """, (task,))
 
-def process(con):
-    cur = con.execute("SELECT * FROM Collection ORDER BY id DESC")
-    for pid, task, bucket in cur.fetchall():
-        print('[*] PROCESSING: "{0}"'.format(task))
-        if input('Is "{0}" actionable? (y,n)'.format(task)) in ('n'):
-            choice = input("Is it trash, reference, or incubate?")
-            # TODO: Make into integer only between 1 - 3 
-            # (rf. Update multiple rows with different values and a single SQL query)
-            con.execute("""
-            UPDATE Collection
-            SET bucket = ?
-            WHERE id = ?
-            """, (choice, pid,))
-        else:
-            if input("Is {0} the only next action?".format(task)) == 'y':
-                if input("Can you finish it within 2 minutes? If so, do it now and enter 'y'. If not, press 'n'") =='n':
-                    # make Collection into next action
-                    con.execute("""
-                        INSERT INTO NextAction(details) VALUES(?)
-                    """, (task,))
-
-                # delete Collection
+    def process(con):
+        cur = con.execute("SELECT * FROM Collection ORDER BY id DESC")
+        for pid, task, bucket in cur.fetchall():
+            print('[*] PROCESSING: "{0}"'.format(task))
+            if input('Is "{0}" actionable? (y,n)'.format(task)) in ('n'):
+                choice = input("Is it trash, reference, or incubate?")
+                # TODO: Make into integer only between 1 - 3 
+                # (rf. Update multiple rows with different values and a single SQL query)
                 con.execute("""
-                    DELETE FROM Collection
-                    WHERE id = ?
-                """, (pid,))
+                UPDATE Collection
+                SET bucket = ?
+                WHERE id = ?
+                """, (choice, pid,))
             else:
-                tempFile = ".temp"
-                with open(tempFile, 'w') as f:
-                    ## TODO: find an alternative in case $EDITOR is not defined
-                    # Substitue with Tkinter? Knowpapa text-editor
-                    # cat > /dev/null (subprocess.Popen(['cat'], f)
-                    subprocess.call(["vim", tempFile])
-                    with open(tempFile, 'r') as f:
-                        na_id = 1
-                        project = input("What is the name of the project?")
-                        for line in f:
-                            con.execute("""
-                                INSERT INTO NextAction(id, details, project) VALUES(?,?,?)
-                            """, (na_id, line, project))
-                            na_id += 1
-                    os.remove(tempFile)
+                if input("Is {0} the only next action?".format(task)) == 'y':
+                    if input("Can you finish it within 2 minutes? If so, do it now and enter 'y'. If not, press 'n'") =='n':
+                        # make Collection into next action
+                        con.execute("""
+                            INSERT INTO NextAction(details) VALUES(?)
+                        """, (task,))
+
+                    # delete Collection
                     con.execute("""
-                    DELETE FROM Collection
-                    WHERE id = ?
+                        DELETE FROM Collection
+                        WHERE id = ?
                     """, (pid,))
-def show(con):
-    bucketDict = {"1": "Collection", "2": "NextAction", "3": "Project"}
-    bucket = bucketDict[input("Which bucket do you wish to see? (1. {0}, 2. {1} 3. {2})".format(bucketDict["1"],bucketDict["2"],bucketDict["3"]))]
+                else:
+                    tempFile = ".temp"
+                    with open(tempFile, 'w') as f:
+                        ## TODO: find an alternative in case $EDITOR is not defined
+                        # Substitue with Tkinter? Knowpapa text-editor
+                        # cat > /dev/null (subprocess.Popen(['cat'], f)
+                        subprocess.call(["vim", tempFile])
+                        with open(tempFile, 'r') as f:
+                            na_id = 1
+                            project = input("What is the name of the project?")
+                            for line in f:
+                                con.execute("""
+                                    INSERT INTO NextAction(id, details, project) VALUES(?,?,?)
+                                """, (na_id, line, project))
+                                na_id += 1
+                        os.remove(tempFile)
+                        con.execute("""
+                        DELETE FROM Collection
+                        WHERE id = ?
+                        """, (pid,))
+    def show(con):
+        bucketDict = {"1": "Collection", "2": "NextAction", "3": "Project"}
+        bucket = bucketDict[input("Which bucket do you wish to see? (1. {0}, 2. {1} 3. {2})".format(bucketDict["1"],bucketDict["2"],bucketDict["3"]))]
 
-    cur = con.cursor()
-    cur.execute("SELECT * FROM {0}".format(bucket))
-    #if listToShow == "1":
-    #    cur.execute("""
-    #        SELECT * FROM Collection
-    #    """)
-    #elif listToShow == "2":
-    #    cur.execute("""
-    #        SELECT * FROM NextAction
-    #    """)
-    #elif listToShow == "3":
-    #    cur.execute("""
-    #        SELECT * FROM Project
-    #    """)
-    # TODO: Find a way to effectively show the data of schema
-    for col in cur.description:
-        print(col[0])
-    for row in cur.fetchall():
-        print(row)
+        cur = con.cursor()
+        cur.execute("SELECT * FROM {0}".format(bucket))
+        #if listToShow == "1":
+        #    cur.execute("""
+        #        SELECT * FROM Collection
+        #    """)
+        #elif listToShow == "2":
+        #    cur.execute("""
+        #        SELECT * FROM NextAction
+        #    """)
+        #elif listToShow == "3":
+        #    cur.execute("""
+        #        SELECT * FROM Project
+        #    """)
+        # TODO: Find a way to effectively show the data of schema
+        for col in cur.description:
+            print(col[0])
+        for row in cur.fetchall():
+            print(row)
 
-def do(con):
-    # TODO: if you finish one next action, then reduce the id by one of entire project
-    cur = con.cursor()
-    cur.execute("SELECT * FROM NextAction")
-    for line in cur.fetchall():
-        print(line)
-        #print("{0} {1} {2}".format(line))
+    def do(con):
+        # TODO: if you finish one next action, then reduce the id by one of entire project
+        cur = con.cursor()
+        cur.execute("SELECT * FROM NextAction")
+        for line in cur.fetchall():
+            print(line)
+            #print("{0} {1} {2}".format(line))
 
-    #todo = input("Which ones do you wish to do in next 25 minutes?")
+        #todo = input("Which ones do you wish to do in next 25 minutes?")
     
 
 if __name__ == "__main__":
