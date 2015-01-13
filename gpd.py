@@ -1,121 +1,118 @@
-#! /usr/bin/env python
-import argparse
+import urwid
 import sqlite3 as lite
-import os, subprocess
+import os
 
-class GPD:
-    def collect(con):
-        task = input("What is the goal? ")
-        con.execute("""
-        INSERT INTO Collection(details) VALUES(?)
-        """, (task,))
+def keyhandler(key):
+    if key in ('q', 'Q'):
+        raise urwid.ExitMainLoop()
+    # Collect
+    if key in ('a', 'A'):
+        layout.footer = AddPrompt()
+        layout.focus_position = 'footer'
+    # Process
+    if key in ('p', 'P'):
+        # for task in tasks:
+        layout.body = CascadingBoxes()
+        layout.focus_position = 'body'
 
-    def process(con):
-        cur = con.execute("SELECT * FROM Collection ORDER BY id DESC")
-        for pid, task, bucket in cur.fetchall():
-            print('[*] PROCESSING: "{0}"'.format(task))
-            if input('Is "{0}" actionable? (y,n)'.format(task)) in ('n'):
-                choice = input("Is it trash, reference, or incubate?")
-                # TODO: Make into integer only between 1 - 3 
-                # (rf. Update multiple rows with different values and a single SQL query)
-                con.execute("""
-                UPDATE Collection
-                SET bucket = ?
-                WHERE id = ?
-                """, (choice, pid,))
-            else:
-                if input("Is {0} the only next action?".format(task)) == 'y':
-                    if input("Can you finish it within 2 minutes? If so, do it now and enter 'y'. If not, press 'n'") =='n':
-                        # make Collection into next action
-                        con.execute("""
-                            INSERT INTO NextAction(details) VALUES(?)
-                        """, (task,))
+    # do
+    if key in ('d', 'D'):
+        bt = urwid.BigText('1 : 0 0', urwid.font.HalfBlock7x7Font())
+        bt = urwid.Padding(bt, 'center', width='clip')
+        #bt = urwid.AttrWrap(bt, 'bigtext')
+        bt = urwid.Filler(bt)
+        layout.body = bt
+        layout.focus_position = 'body'
 
-                    # delete Collection
-                    con.execute("""
-                        DELETE FROM Collection
-                        WHERE id = ?
-                    """, (pid,))
-                else:
-                    tempFile = ".temp"
-                    with open(tempFile, 'w') as f:
-                        ## TODO: find an alternative in case $EDITOR is not defined
-                        # Substitue with Tkinter? Knowpapa text-editor
-                        # cat > /dev/null (subprocess.Popen(['cat'], f)
-                        subprocess.call(["vim", tempFile])
-                        with open(tempFile, 'r') as f:
-                            na_id = 1
-                            project = input("What is the name of the project?")
-                            for line in f:
-                                con.execute("""
-                                    INSERT INTO NextAction(id, details, project) VALUES(?,?,?)
-                                """, (na_id, line, project))
-                                na_id += 1
-                        os.remove(tempFile)
-                        con.execute("""
-                        DELETE FROM Collection
-                        WHERE id = ?
-                        """, (pid,))
-    def show(con):
-        bucketDict = {"1": "Collection", "2": "NextAction", "3": "Project"}
-        bucket = bucketDict[input("Which bucket do you wish to see? (1. {0}, 2. {1} 3. {2})".format(bucketDict["1"],bucketDict["2"],bucketDict["3"]))]
 
-        cur = con.cursor()
-        cur.execute("SELECT * FROM {0}".format(bucket))
-        #if listToShow == "1":
-        #    cur.execute("""
-        #        SELECT * FROM Collection
-        #    """)
-        #elif listToShow == "2":
-        #    cur.execute("""
-        #        SELECT * FROM NextAction
-        #    """)
-        #elif listToShow == "3":
-        #    cur.execute("""
-        #        SELECT * FROM Project
-        #    """)
-        # TODO: Find a way to effectively show the data of schema
-        for col in cur.description:
-            print(col[0])
-        for row in cur.fetchall():
-            print(row)
 
-    def do(con):
-        # TODO: if you finish one next action, then reduce the id by one of entire project
-        cur = con.cursor()
-        cur.execute("SELECT * FROM NextAction")
-        for line in cur.fetchall():
-            print(line)
-            #print("{0} {1} {2}".format(line))
+class AddPrompt(urwid.Edit):
+    def __init__(self):
+        urwid.Edit.__init__(self, 'What task would you like to add? ')
 
-        #todo = input("Which ones do you wish to do in next 25 minutes?")
-    
+    def get_prompt(self):
+        return self.get_edit_text()
+
+    def keypress(self, size, key):
+        if key == 'enter':
+            layout.footer = urwid.Text(u'The task "{0}" is added!'.format(self.get_edit_text()))
+        else:
+            return urwid.Edit.keypress(self, size, key)
+
+
+
+class CascadingBoxes(urwid.WidgetPlaceholder):
+    max_box_levels = 5
+
+    def __init__(self):
+        # Create menu for Process Step
+        menu_top = self.menu(u'Processing...', [
+            self.sub_menu(u'Not Actionable', [
+                self.menu_button(u'Trash', self.item_chosen),
+                self.menu_button(u'Incubate', self.item_chosen),
+                self.menu_button(u'Reference', self.item_chosen),
+            ]),
+            self.sub_menu(u'Actionable', [
+                self.sub_menu(u'Next Action', [
+                    self.menu_button(u'Less than 2 minutes', self.item_chosen),
+                    self.sub_menu(u'Longer than 2 minutes', [
+                        self.menu_button(u'Delegate it: Waiting for', self.item_chosen),
+                        self.menu_button(u'Defer it: NextActions ', self.item_chosen),
+                        self.menu_button(u'Defer it: Calendar', self.item_chosen),
+                        ]),
+                    ]),
+            self.menu_button(u'Project', self.item_chosen),
+            ]),
+        ])
+        super(CascadingBoxes, self).__init__(urwid.SolidFill(u'/'))
+        self.box_level = 0
+        self.open_box(menu_top)
+
+    def open_box(self, box):
+        self.original_widget = urwid.Overlay(urwid.LineBox(box),
+            self.original_widget,
+            align='center', width=('relative', 80),
+            valign='middle', height=('relative', 80),
+            min_width=24, min_height=8,
+            left=self.box_level * 3,
+            right=(self.max_box_levels - self.box_level - 1) * 3,
+            top=self.box_level * 2,
+            bottom=(self.max_box_levels - self.box_level - 1) * 2)
+        self.box_level += 1
+
+    def keypress(self, size, key):
+        if key == 'esc' and self.box_level > 1:
+            self.original_widget = self.original_widget[0]
+            self.box_level -= 1
+        else:
+            return super(CascadingBoxes, self).keypress(size, key)
+
+    # Creating Cascading Menu
+    def menu_button(self, caption, callback):
+        button = urwid.Button(caption)
+        urwid.connect_signal(button, 'click', callback)
+        return urwid.AttrMap(button, None, focus_map='reversed')
+
+    def sub_menu(self, caption, choices):
+        contents = self.menu(caption, choices)
+        def open_menu(button):
+            return self.open_box(contents)
+        return self.menu_button([caption, u'...'], open_menu)
+
+    def menu(self, title, choices):
+        body = [urwid.Text(title), urwid.Divider()]
+        body.extend(choices)
+        return urwid.ListBox(urwid.SimpleFocusListWalker(body))
+
+    def item_chosen(self, button):
+        response = urwid.Text([u'You chose ', button.label, u'\n'])
+        done = self.menu_button(u'Ok', keyhandler)
+        self.open_box(urwid.Filler(urwid.Pile([response, done])))
+
+
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(prog="Getting Pomodoros Done")
-    subparsers = parser.add_subparsers(title="Steps")
-    
-    add_subparser = subparsers.add_parser('add',help="add").set_defaults(func=collect)
-    collect_subparser = subparsers.add_parser('collect',help="collect").set_defaults(func=collect)
-    process_subparsers = subparsers.add_parser('process',help="process").set_defaults(func=process)
-    show_subparsers = subparsers.add_parser('show',help="show").set_defaults(func=show)
-    do_subparser = subparsers.add_parser('do',help="do").set_defaults(func=do)
-    """
-    show_subparser = subparsers.add_parser('show',help="show")
-    show_subparser2 = show_subparser.add_subparsers(dest="show_command")
-    show_subparser2.add_parser("incubation").set_defaults(func=show)
-    show_subparser2.add_parser("reference").set_defaults(func=show)
-    show_subparser2.add_parser("projects").set_defaults(func=show)
-    show_subparser2.add_parser("support").set_defaults(func=show)
-    show_subparser2.add_parser("next").set_defaults(func=show)
-    show_subparser2.add_parser("waiting").set_defaults(func=show)
-    show_subparser2.add_parser("calendar").set_defaults(func=show)
-
-    review_subparser = subparsers.add_parser('review',help="review").set_defaults(func=review)
-    """
-    args = parser.parse_args()
-    
-    # TODO: Get rid of bucket
+    ### SET UP SQLITE3 ###
     schema_task = """
     CREATE TABLE Collection (
         id      integer primary key autoincrement,
@@ -140,11 +137,32 @@ if __name__ == "__main__":
     """
     db_filename = "test.db"
     db_is_new = not os.path.exists(db_filename) 
-            #print("DB is new? {0}".format(db_is_new))
     with lite.connect(db_filename) as con:
         if db_is_new:
             print("[*] Creating schema")
             con.executescript(schema_task)
             con.executescript(schema_next)
-            #con.executescript(schema_proj)
-        args.func(con)
+            con.executescript(schema_proj)
+
+    ### SET UP UI ###
+    # Set up color scheme
+    palette = [ ('titlebar', 'black', 'white'),
+                ('bigtext', 'white', 'black'),
+                ('reversed', 'standout', '')]
+
+    # Create initial screen
+    header_txt = urwid.Text(u"list stat goes here")
+    #header = urwid.AttrWrap(header_txt, 'titlebar')
+
+    body_txt = urwid.Text(u"""
+    Welcome to GPD!
+    Enter 'a' to add a new task, 'q' to quit, 'h' for more help""", align='center')
+    body = urwid.Filler(body_txt)
+
+    # place holder for footer
+    footer = urwid.Text(u"")
+
+    layout = urwid.Frame(header=header_txt, body=body, footer=footer)
+
+    loop = urwid.MainLoop(layout,palette, unhandled_input=keyhandler)
+    loop.run()
