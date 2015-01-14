@@ -10,6 +10,8 @@ Version 1.0
     Process:
     -/ Refer to tutorial on how to add cascading menu
     -/ find the right spot to run the program without error
+
+    - find a way to correctly add to sqlite database
     SQL:
     - The beginning screen needs to be filled with Next Action if it exists. If not, brief instructional message.
     - If a -> add to the task list
