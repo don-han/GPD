@@ -2,6 +2,105 @@ import urwid
 import sqlite3 as lite
 import os
 
+class GPD:
+    # Set up color scheme
+    palette = [ ('titlebar', 'black', 'white'),
+                ('bigtext', 'white', 'black'),
+                ('reversed', 'standout', '')]
+
+    def __init__(self):
+        ### SET UP SQLITE3 ###
+        schema_task = """
+        CREATE TABLE Collection (
+            id      integer primary key autoincrement,
+            details text,
+            bucket  text
+        )
+        """
+
+        schema_next="""
+        CREATE TABLE NextAction(
+            id integer,
+            step_id integer,
+            details text,
+            project text references Project(name)
+        )
+        """ 
+
+        schema_proj="""
+        CREATE TABLE Project(
+            name text
+        )
+        """
+        db_filename = "test.db"
+        db_is_new = not os.path.exists(db_filename) 
+        with lite.connect(db_filename) as self.con:
+            if db_is_new:
+                print("[*] Creating schema")
+                self.con.executescript(schema_task)
+                self.con.executescript(schema_next)
+                self.con.executescript(schema_proj)
+            self.build()
+    def build(self):
+
+        ### SET UP UI ###
+        # Create initial screen
+        self.header_txt = urwid.Text(u"list stat goes here")
+        #header = urwid.AttrWrap(header_txt, 'titlebar')
+
+        body_txt = urwid.Text(u"""
+        Welcome to GPD!
+        Enter 'a' to add a new task, 'q' to quit, 'h' for more help""", align='center')
+        self.body = urwid.Filler(body_txt)
+
+        # place holder for footer
+        self.footer = urwid.Text(u"")
+        self.layout = urwid.Frame(header=self.header_txt, body=self.body, footer=self.footer)
+
+    
+    def main(self):
+        self.loop = urwid.MainLoop(self.layout, self.palette, unhandled_input=self.keyhandler)
+        self.loop.run()
+
+    def keyhandler(self, key):
+        if key in ('q', 'Q'):
+            raise urwid.ExitMainLoop()
+        # Collect
+        if key in ('a', 'A'):
+            self.layout.footer = AddPrompt(self.loop, self.con)
+            self.layout.focus_position = 'footer'
+        # Process
+        if key in ('p', 'P'):
+            # for task in tasks:
+            self.layout.body = CascadingBoxes()
+            self.layout.focus_position = 'body'
+
+        # do
+        if key in ('d', 'D'):
+            bt = urwid.BigText('1 : 0 0', urwid.font.HalfBlock7x7Font())
+            bt = urwid.Padding(bt, 'center', width='clip')
+            #bt = urwid.AttrWrap(bt, 'bigtext')
+            bt = urwid.Filler(bt)
+            self.layout.body = bt
+            self.layout.focus_position = 'body'
+
+class AddPrompt(urwid.Edit):
+    def __init__(self, loop, con):
+        self.loop = loop
+        self.con = con
+        urwid.Edit.__init__(self, 'What task would you like to add? ')
+
+    def keypress(self, size, key):
+        if key == 'enter':
+            task = self.get_edit_text()
+            self.loop.widget.footer = urwid.Text(u'The task "{0}" is added!'.format(task))
+            self.con.execute("""
+            INSERT INTO Collection(details) VALUES(?)
+            """, (task,))
+            self.con.commit()
+        else:
+            return urwid.Edit.keypress(self, size, key)
+
 class CascadingBoxes(urwid.WidgetPlaceholder):
     max_box_levels = 5
 
@@ -71,103 +170,6 @@ class CascadingBoxes(urwid.WidgetPlaceholder):
         self.open_box(urwid.Filler(urwid.Pile([response, done])))
 
 
-
-class GPD:
-    # Set up color scheme
-    palette = [ ('titlebar', 'black', 'white'),
-                ('bigtext', 'white', 'black'),
-                ('reversed', 'standout', '')]
-
-    def __init__(self):
-        ### SET UP SQLITE3 ###
-        schema_task = """
-        CREATE TABLE Collection (
-            id      integer primary key autoincrement,
-            details text,
-            bucket  text
-        )
-        """
-
-        schema_next="""
-        CREATE TABLE NextAction(
-            id integer,
-            step_id integer,
-            details text,
-            project text references Project(name)
-        )
-        """ 
-
-        schema_proj="""
-        CREATE TABLE Project(
-            name text
-        )
-        """
-        db_filename = "test.db"
-        db_is_new = not os.path.exists(db_filename) 
-        with lite.connect(db_filename) as self.con:
-            if db_is_new:
-                print("[*] Creating schema")
-                self.con.executescript(schema_task)
-                self.con.executescript(schema_next)
-                self.con.executescript(schema_proj)
-
-        ### SET UP UI ###
-        # Create initial screen
-        self.header_txt = urwid.Text(u"list stat goes here")
-        #header = urwid.AttrWrap(header_txt, 'titlebar')
-
-        body_txt = urwid.Text(u"""
-        Welcome to GPD!
-        Enter 'a' to add a new task, 'q' to quit, 'h' for more help""", align='center')
-        self.body = urwid.Filler(body_txt)
-
-        # place holder for footer
-        self.footer = urwid.Text(u"")
-        self.layout = urwid.Frame(header=self.header_txt, body=self.body, footer=self.footer)
-
-    
-    def main(self):
-        self.loop = urwid.MainLoop(self.layout, self.palette, unhandled_input=self.keyhandler)
-        self.loop.run()
-
-    def keyhandler(self, key):
-        if key in ('q', 'Q'):
-            raise urwid.ExitMainLoop()
-        # Collect
-        if key in ('a', 'A'):
-            self.layout.footer = AddPrompt(self.loop, self.con)
-            self.layout.focus_position = 'footer'
-        # Process
-        if key in ('p', 'P'):
-            # for task in tasks:
-            self.layout.body = CascadingBoxes()
-            self.layout.focus_position = 'body'
-
-        # do
-        if key in ('d', 'D'):
-            bt = urwid.BigText('1 : 0 0', urwid.font.HalfBlock7x7Font())
-            bt = urwid.Padding(bt, 'center', width='clip')
-            #bt = urwid.AttrWrap(bt, 'bigtext')
-            bt = urwid.Filler(bt)
-            self.layout.body = bt
-            self.layout.focus_position = 'body'
-
-class AddPrompt(urwid.Edit):
-    def __init__(self, loop, con):
-        self.loop = loop
-        self.con = con
-        urwid.Edit.__init__(self, 'What task would you like to add? ')
-
-    def keypress(self, size, key):
-        if key == 'enter':
-            task = self.get_edit_text()
-            print(task)
-            self.loop.widget.footer = urwid.Text(u'The task "{0}" is added!'.format(task))
-            self.con.execute("""
-            INSERT INTO Collection(details) VALUES(?)
-            """, (task,))
-        else:
-            return urwid.Edit.keypress(self, size, key)
 
 if __name__ == "__main__":
     gpd = GPD()
