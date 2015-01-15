@@ -47,10 +47,16 @@ class GPD:
         # Create initial screen
         self.header_txt = urwid.Text(u"list stat goes here")
         #header = urwid.AttrWrap(header_txt, 'titlebar')
-
-        body_txt = urwid.Text(u"""
-        Welcome to GPD!
-        Enter 'a' to add a new task, 'q' to quit, 'h' for more help""", align='center')
+        cur = self.con.cursor()
+        cur.execute("SELECT * FROM NextAction")
+        tasks = cur.fetchall()
+        # TODO: Make this condition dynamic (applies each time something new is added)
+        if tasks:
+            body_txt = urwid.Text(u"{0}".format(tasks))
+        else:
+            body_txt = urwid.Text(u"""
+            Welcome to GPD!
+            Enter 'a' to add a new task, 'q' to quit, 'h' for more help""", align='center')
         self.body = urwid.Filler(body_txt)
 
         # place holder for footer
@@ -72,7 +78,7 @@ class GPD:
         # Process
         if key in ('p', 'P'):
             # for task in tasks:
-            self.layout.body = CascadingBoxes()
+            self.layout.body = CascadingBoxes(loop, self.con)
             self.layout.focus_position = 'body'
 
         # do
