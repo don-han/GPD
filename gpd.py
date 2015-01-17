@@ -78,7 +78,7 @@ class GPD:
         # Process
         if key in ('p', 'P'):
             # for task in tasks:
-            self.layout.body = CascadingBoxes(loop, self.con)
+            self.layout.body = CascadingBoxes(self.loop, self.con)
             self.layout.focus_position = 'body'
 
         # do
@@ -110,7 +110,9 @@ class AddPrompt(urwid.Edit):
 class CascadingBoxes(urwid.WidgetPlaceholder):
     max_box_levels = 5
 
-    def __init__(self):
+    def __init__(self, loop, con):
+        self.loop = loop
+        self.con = con
         # Create menu for Process Step
         menu_top = self.menu(u'Processing...', [
             self.sub_menu(u'Not Actionable', [
@@ -170,9 +172,10 @@ class CascadingBoxes(urwid.WidgetPlaceholder):
         body.extend(choices)
         return urwid.ListBox(urwid.SimpleFocusListWalker(body))
 
+    # TODO: Make a special function for each of the item, and attach it to the menu_button
     def item_chosen(self, button):
         response = urwid.Text([u'You chose ', button.label, u'\n'])
-        done = self.menu_button(u'Ok', keyhandler)
+        done = self.menu_button(u'Ok',)
         self.open_box(urwid.Filler(urwid.Pile([response, done])))
 
 
