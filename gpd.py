@@ -110,23 +110,24 @@ class AddPrompt(urwid.Edit):
 class CascadingBoxes(urwid.WidgetPlaceholder):
     max_box_levels = 5
 
-    def __init__(self, loop, con):
+    def __init__(self, loop, con, tasks):
         self.loop = loop
         self.con = con
+        self.tasks = tasks
         # Create menu for Process Step
         menu_top = self.menu(u'Processing...', [
             self.sub_menu(u'Not Actionable', [
-                self.menu_button(u'Trash', self.item_chosen),
-                self.menu_button(u'Incubate', self.item_chosen),
-                self.menu_button(u'Reference', self.item_chosen),
+                self.menu_button(u'Trash', self.trash),
+                self.menu_button(u'Incubate', self.incubate),
+                self.menu_button(u'Reference', self.refer),
             ]),
             self.sub_menu(u'Actionable', [
                 self.sub_menu(u'Next Action', [
-                    self.menu_button(u'Less than 2 minutes', self.item_chosen),
+                    self.menu_button(u'Less than 2 minutes', self.do),
                     self.sub_menu(u'Longer than 2 minutes', [
-                        self.menu_button(u'Delegate it: Waiting for', self.item_chosen),
-                        self.menu_button(u'Defer it: NextActions ', self.item_chosen),
-                        self.menu_button(u'Defer it: Calendar', self.item_chosen),
+                        self.menu_button(u'Delegate it: Waiting for', self.delegate),
+                        self.menu_button(u'Defer it: NextActions ', self.defer),
+                        self.menu_button(u'Defer it: Calendar', self.defer),
                         ]),
                     ]),
             self.menu_button(u'Project', self.item_chosen),
@@ -134,7 +135,9 @@ class CascadingBoxes(urwid.WidgetPlaceholder):
         ])
         super(CascadingBoxes, self).__init__(urwid.SolidFill(u'/'))
         self.box_level = 0
-        self.open_box(menu_top)
+        for task in tasks:
+            self.task = task
+            self.open_box(menu_top)
 
     def open_box(self, box):
         self.original_widget = urwid.Overlay(urwid.LineBox(box),
@@ -172,11 +175,35 @@ class CascadingBoxes(urwid.WidgetPlaceholder):
         body.extend(choices)
         return urwid.ListBox(urwid.SimpleFocusListWalker(body))
 
-    # TODO: Make a special function for each of the item, and attach it to the menu_button
-    def item_chosen(self, button):
-        response = urwid.Text([u'You chose ', button.label, u'\n'])
-        done = self.menu_button(u'Ok',)
-        self.open_box(urwid.Filler(urwid.Pile([response, done])))
+    def trash(self):
+        """ DELETES task from the DB """
+        # TODO: NEEDS IMPLEMENTATION
+        pass
+    def incubate(self):
+        """ """
+        # TODO: NEEDS IMPLEMENTATION
+        pass
+    def refer(self):
+        """ """
+        # TODO: NEEDS IMPLEMENTATION
+        pass
+    def do(self):
+        """ """
+        # TODO: NEEDS IMPLEMENTATION
+        pass
+    def delegate(self):
+        """ """
+        # TODO: NEEDS IMPLEMENTATION
+        pass
+    def defer(self):
+        """ """
+        # TODO: NEEDS IMPLEMENTATION
+        pass
+
+    #def item_chosen(self, button):
+    #    response = urwid.Text([u'You chose ', button.label, u'\n'])
+    #    done = self.menu_button(u'Ok',)
+    #    self.open_box(urwid.Filler(urwid.Pile([response, done])))
 
 
 
