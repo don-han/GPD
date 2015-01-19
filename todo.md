@@ -1,5 +1,4 @@
-Written in the Order of Priority
-Version 0.0
+./Version 0.0
 -/ Make Pomodoro Counter
 - Make TUI with urwid (-ncurses-)
     -/ draw on paper before you begin programming
@@ -14,12 +13,12 @@ Version 0.0
     -/ find a way to correctly add to sqlite database
 
 Version 0.1
-
 GTD Functionality:
 - reread GTD and clearly understand what it's supposed to do
 SQL:
 - The beginning screen needs to be filled with Next Action if it exists. If not, brief instructional message.
         
+Version 1.0
 - Write readme 
 
 Version 2.0

@@ -123,6 +123,9 @@ class CascadingBoxes(urwid.WidgetPlaceholder):
             ]),
             self.sub_menu(u'Actionable', [
                 self.sub_menu(u'Next Action', [
+                    # Should ask what is the next action.
+                    # If the next action completes, then do, delegate or defer it
+                    # If not, then manage it as project list 
                     self.menu_button(u'Less than 2 minutes', self.do),
                     self.sub_menu(u'Longer than 2 minutes', [
                         self.menu_button(u'Delegate it: Waiting for', self.delegate),
@@ -176,28 +179,35 @@ class CascadingBoxes(urwid.WidgetPlaceholder):
         return urwid.ListBox(urwid.SimpleFocusListWalker(body))
 
     def trash(self):
-        """ DELETES task from the DB """
+        """ Deletes task from the DB """
         # TODO: NEEDS IMPLEMENTATION
         pass
     def incubate(self):
-        """ """
+        """ Send the item into someday/maybe folder"""
         # TODO: NEEDS IMPLEMENTATION
         pass
     def refer(self):
-        """ """
+        """ Store into the database; needs easy access and query  """
         # TODO: NEEDS IMPLEMENTATION
         pass
     def do(self):
-        """ """
+        """ If the task takes less than two minutes, start two minute counter so that you can finish the task under given time """
         # TODO: NEEDS IMPLEMENTATION
         pass
     def delegate(self):
-        """ """
+        """ Give the task to someone else who might be responsible for its completion """
         # TODO: NEEDS IMPLEMENTATION
         pass
-    def defer(self):
-        """ """
+    def deferToCalendar(self):
+        """ Put a reminder  in a tickler file so that it can be done at the designated moment """
         # TODO: NEEDS IMPLEMENTATION
+        pass
+    def deferToNextAction(self):
+        """ Put the next action into the Next Action list so that it can be done as soon as possible """
+        # TODO: NEEDS IMPLEMENTATION
+        pass
+    def projectHandler(self):
+        """ If a task requires more than one next action, then it belongs in the project list and needs handling until project is finished """
         pass
 
     #def item_chosen(self, button):
