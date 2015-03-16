@@ -1,6 +1,6 @@
-## Getting Things Done (GPD)
+# Getting Things Done (GPD)
 
-# INSTALLATION 
+## INSTALLATION 
 You need sqlite3 installed in your OS
 
 You also need to install urwid library through pip
@@ -8,10 +8,11 @@ You also need to install urwid library through pip
 sudo pip install urwid
 ```
 
-# OPERATION
+## OPERATION
 ```
 python gpd.py
 ```
 
 # Screen Shots
+![](images/screenshot.png?raw=true)
 
