@@ -18,7 +18,7 @@ class GPD:
         )
         """
 
-        schema_next="""
+        schema_next = """
         CREATE TABLE NextAction(
             id integer,
             step_id integer,
@@ -27,7 +27,7 @@ class GPD:
         )
         """ 
 
-        schema_proj="""
+        schema_proj = """
         CREATE TABLE Project(
             name text
         )
@@ -36,23 +36,26 @@ class GPD:
         db_is_new = not os.path.exists(db_filename) 
         with lite.connect(db_filename) as self.con:
             if db_is_new:
-                print("[*] Creating schema")
+                ### Creating Schema ###
                 self.con.executescript(schema_task)
                 self.con.executescript(schema_next)
                 self.con.executescript(schema_proj)
             self.build()
+
     def build(self):
 
         ### SET UP UI ###
         # Create initial screen
-        self.header_txt = urwid.Text(u"list stat goes here")
+
+        #self.header_txt = urwid.Text(u"list stat goes here")
+        self.header_txt = urwid.Text(u"You currently have 0 tasks")
         #header = urwid.AttrWrap(header_txt, 'titlebar')
         cur = self.con.cursor()
         cur.execute("SELECT * FROM NextAction")
-        tasks = cur.fetchall()
+        self.tasks = cur.fetchall()
         # TODO: Make this condition dynamic (applies each time something new is added)
-        if tasks:
-            body_txt = urwid.Text(u"{0}".format(tasks))
+        if self.tasks:
+            body_txt = urwid.Text(u"{0}".format(self.tasks))
         else:
             body_txt = urwid.Text(u"""
             Welcome to GPD!
@@ -78,7 +81,7 @@ class GPD:
         # Process
         if key in ('p', 'P'):
             # for task in tasks:
-            self.layout.body = CascadingBoxes(self.loop, self.con)
+            self.layout.body = CascadingBoxes(self.loop, self.con, self.tasks)
             self.layout.focus_position = 'body'
 
         # do
@@ -108,6 +111,9 @@ class AddPrompt(urwid.Edit):
             return urwid.Edit.keypress(self, size, key)
 
 class CascadingBoxes(urwid.WidgetPlaceholder):
+    """
+    Processes each task individually
+    """
     max_box_levels = 5
 
     def __init__(self, loop, con, tasks):
@@ -129,8 +135,10 @@ class CascadingBoxes(urwid.WidgetPlaceholder):
                     self.menu_button(u'Less than 2 minutes', self.do),
                     self.sub_menu(u'Longer than 2 minutes', [
                         self.menu_button(u'Delegate it: Waiting for', self.delegate),
-                        self.menu_button(u'Defer it: NextActions ', self.defer),
-                        self.menu_button(u'Defer it: Calendar', self.defer),
+                        self.menu_button(u'Defer it: NextActions ',
+                            self.deferToNextAction),
+                        self.menu_button(u'Defer it: Calendar',
+                            self.deferToCalendar),
                         ]),
                     ]),
             self.menu_button(u'Project', self.item_chosen),
@@ -138,9 +146,11 @@ class CascadingBoxes(urwid.WidgetPlaceholder):
         ])
         super(CascadingBoxes, self).__init__(urwid.SolidFill(u'/'))
         self.box_level = 0
+        """
         for task in tasks:
             self.task = task
             self.open_box(menu_top)
+            """
 
     def open_box(self, box):
         self.original_widget = urwid.Overlay(urwid.LineBox(box),
@@ -181,7 +191,8 @@ class CascadingBoxes(urwid.WidgetPlaceholder):
     def trash(self):
         """ Deletes task from the DB """
         # TODO: NEEDS IMPLEMENTATION
-        pass
+        self.con.execute("DELETE FROM Collection WHERE ")
+
     def incubate(self):
         """ Send the item into someday/maybe folder"""
         # TODO: NEEDS IMPLEMENTATION
@@ -210,10 +221,11 @@ class CascadingBoxes(urwid.WidgetPlaceholder):
         """ If a task requires more than one next action, then it belongs in the project list and needs handling until project is finished """
         pass
 
-    #def item_chosen(self, button):
+    def item_chosen(self, button):
     #    response = urwid.Text([u'You chose ', button.label, u'\n'])
     #    done = self.menu_button(u'Ok',)
     #    self.open_box(urwid.Filler(urwid.Pile([response, done])))
+        pass
 
 
 
